@@ -1,7 +1,9 @@
 INST_PREFIX ?= /usr
-INST_LIBDIR ?= $(INST_PREFIX)/lib/lua/5.1
-INST_LUADIR ?= $(INST_PREFIX)/share/lua/5.1
+# INST_LIBDIR ?= $(INST_PREFIX)/lib/lua/5.1
+# INST_LUADIR ?= $(INST_PREFIX)/share/lua/5.1
+INST_LUADIR ?= $(INST_PREFIX)/local/openresty/site/lualib
 INSTALL ?= install
+
 
 .PHONY: default
 default: test
@@ -15,8 +17,8 @@ test:
 ### install:      Install the library to runtime
 .PHONY: install
 install:
-	$(INSTALL) -d $(INST_LUADIR)/resty/klib/
-	$(INSTALL) lib/resty/klib/*.lua $(INST_LUADIR)/resty/klib/
+	$(INSTALL) -d $(INST_LUADIR)/klib/
+	$(INSTALL) lib/klib/*.lua $(INST_LUADIR)/klib/
 
 ### lint:         Lint Lua source code
 .PHONY: lint
