@@ -3,7 +3,7 @@ local nmatch, gmatch, byte, char = ngx.re.match, ngx.re.gmatch, string.byte, str
 local sfind, ssub, lower, rep = string.find, string.sub, string.lower, string.rep
 local say, print = ngx.say, ngx.print
 local ins, concat = table.insert, table.concat
-local sbuffer = require('resty.klib.sbuffer')
+local sbuffer = require('klib.sbuffer')
 local key_words = { ["and"] = true, ["break"] = true, ["do"] = true, ["else"] = true, ["elseif"] = true, ["end"] = true, ["false"] = true, ["for"] = true, ["function"] = true, ["if"] = true, ["in"] = true, ["local"] = true, ["nil"] = true, ["not"] = true, ["or"] = true, ["repeat"] = true, ["return"] = true, ["then"] = true, ["true"] = true, ["until"] = true, ["while"] = true, }
 
 local code_content_map = {}
@@ -274,6 +274,10 @@ function _M.get_call_path(stack_level, is_short_path)
 		nc = nc - 1
 	end
 	return sb:pop():tos()
+end
+
+function _M.main()
+
 end
 
 return _M

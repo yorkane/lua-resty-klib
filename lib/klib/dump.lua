@@ -2,9 +2,8 @@ local nfind, nsub, type, pcall, tostring, pairs, require = ngx.re.find, ngx.re.g
 local nmatch, gmatch, byte, char = ngx.re.match, ngx.re.gmatch, string.byte, string.char
 local sfind, ssub, lower, rep = string.find, string.sub, string.lower, string.rep
 local say, print = ngx.say, ngx.print
-local klass = require('resty.klib.klass')
-local sbuffer = require('resty.klib.sbuffer')
-local to_array = sbuffer.to_array
+local klass = require('klib.klass')
+local sbuffer = require('klib.sbuffer')
 local ins, concat, tsort = table.insert, table.concat, table.sort
 local function hash(n)
 	return table.new(0, n)
@@ -79,7 +78,7 @@ local _M = {}
 local root = ngx.config.prefix()
 
 if not root or #root < 5 or sfind(lower(root), 'te*mp/') then
-	local ok, lfs = pcall(require, 'lib.lfs_ffi')
+	local ok, lfs = pcall(require, 'lfs_ffi')
 	if ok and lfs.currentdir then
 		root = nsub(lfs:currentdir() .. '/', [[\\+]], '/', 'jo')
 	else
@@ -115,17 +114,15 @@ local function parse_returns(text)
 	local inx = sfind(text, 'return', 1, true)
 	if inx then
 		text = ssub(text, inx + 7, #text)
-		--ngx.say(text)
 		return text
 	end
 end
 
 ---dump print out all info within inputs, IF YOU WANT ALL HIERARCHY INFO, PLEASE CALL parse_hierarchy to get full detailed info
 function _M.dump(...)
-	local t = { ... }
 	local len = select('#', ...)
 	for i = 1, len do
-		local item = t[i]
+		local item = select(i, ...)
 		if type(item) == 'table' then
 			say(_M.dump_lua(klass.parse_hierarchy(item)))
 		else
@@ -149,12 +146,11 @@ function _M.dump_dict(name)
 end
 
 function _M.logs(...)
-	local arr = { ... }
-	arr = to_array(arr)
+	local len = select("#", ...)
 	local sb = sbuffer()
 	local ok, info = pcall(klass.get_call_path, 3)
-	for i = 1, #arr do
-		local val = arr[i]
+	for i = 1, len do
+		local val = select(i, ...)
 		local tp = type(val)
 		if tp == 'table' then
 			sb:add(_M.dump_lua(val, i))
@@ -165,6 +161,7 @@ function _M.logs(...)
 			sb:add(val)
 		end
 	end
+
 	ngx.log(ngx.WARN, wid .. '/' .. ngx.worker.count(), '\n' .. info .. '\n', sb:tos('\n') .. '\n')
 	return info
 end
