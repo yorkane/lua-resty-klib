@@ -46,7 +46,7 @@ local function add(self, ...)
     local len = select("#", ...)
     for i = 1, len do
         local val = select(i, ...)
-        merge_arr(self.buffer, val)
+        merge_arr(self.buffer, tostring(val))
     end
     return self
 end
@@ -92,14 +92,14 @@ end
 
 
 function _M.main()
-	local sb = _M("1", 2, 3, 4)
-	sb:add('5',6,7,8,'90')
-	sb('a',1,2,3)
-	sb:pop(2)
-	assert(tostring(sb) == '1234567890a1')
-	local sb1 = _M.new('abc',sb)
-	sb1(2,34)
-	assert(tostring(sb1) == 'abc1234567890a1234')
-	-- require('lib.klib.dump').dump_lua({1,2,3,4})
+    local sb = _M("1", 2, 3, 4)
+    sb:add('5',6,7,8,'90')
+    sb('a',1,2,3)
+    sb:pop(2)
+    assert(tostring(sb) == '1234567890a1')
+    local sb1 = _M.new('abc',sb)
+    sb1(2,34)
+    assert(tostring(sb1) == 'abc1234567890a1234')
+    -- require('lib.klib.dump').dump_lua({1,2,3,4})
 end
 return _M

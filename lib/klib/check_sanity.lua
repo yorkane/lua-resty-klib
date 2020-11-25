@@ -12,6 +12,10 @@ local pointer = "\t\t" .. string.rep("-", 30)
 local res_ok = pointer .. " ok\n"
 local res_fail = pointer .. " fail\n"
 
+---check_fun
+---@param fun fun():void
+---@param inst any@ parameters to inject into fun
+---@param sb sbuffer
 function _M.check_fun(fun, inst, sb)
     local has_buffer
     if not sb then
@@ -32,6 +36,10 @@ function _M.check_fun(fun, inst, sb)
     return sb:tos()
 end
 
+---check_url
+---@param text string @ single url text
+---@param options table @http request options
+---@param sb sbuffer
 function _M.check_url(text, options, sb)
     local has_buffer
     if not sb then
@@ -54,8 +62,7 @@ function _M.check_url(text, options, sb)
             options = ngx.req.get_uri_args()
         end
     end
-	local list = nsplit(text, [[[\r\n]+]], "jio")
-	logs(list)
+    local list = nsplit(text, [[[\r\n]+]], "jio")
     local prefix, default_prefix = options.prefix
     local host = options.host
     local ip = options.ip
@@ -93,12 +100,12 @@ function _M.check_url(text, options, sb)
     options.body = nil
     local httpreg = [[http[s]?://([\w\.\-\_\:]+)(/.*)]]
     for i = 1, #list do
-		local url = list[i]
+        local url = list[i]
         if #url == 0 or string.byte(url, 1, 1) == 35 then
             -- say('ignore url:	', url)
-		else
+        else
             local resp, body
-			local arr = nsplit(url, [[\s+]], "jio")
+            local arr = nsplit(url, [[\s+]], "jio")
             if arr[2] then
                 body = arr[2]
                 url = arr[1]
@@ -118,7 +125,7 @@ function _M.check_url(text, options, sb)
                     sb:add(msg, "-------------------->", list[i])
                 end
             else
-				local mc, err = ngx.re.match(url, httpreg, "jio")
+                local mc, err = ngx.re.match(url, httpreg, "jio")
                 if mc then
                     local header = tab_clone(options)
                     if prefix then
@@ -171,11 +178,11 @@ function _M.check_url_parse(url, header, method, body, verify_ssl, sbuff)
     method = " " .. method .. " "
     local headerstr = "\t" .. ngx.re.gsub(dump_lua(header), [[[\s\[\{\}\]\"]+]], "", "jio")
     local status
-    local rbody = resp.body
     if not resp then
         return sbuff("500" .. method .. " 0\t" .. url .. headerstr .. body, res_fail)
     end
     status = resp.status or 500
+    local rbody = resp.body
     if not rbody then
         return sbuff(status .. method .. " 0\t" .. url .. headerstr .. body, res_fail)
     end
@@ -184,8 +191,8 @@ function _M.check_url_parse(url, header, method, body, verify_ssl, sbuff)
         return sbuff(status .. method .. " " .. #rbody .. "\t" .. url .. headerstr .. rbody, res_fail)
     end
     if status == 200 then
-		if #rbody == 0 then
-			dump(url, header, rbody, resp.headers)
+        if #rbody == 0 then
+            dump(url, header, rbody, resp.headers)
             return sbuff("200" .. method .. " 0\t" .. url .. headerstr .. body, res_fail)
         else
             return sbuff("200" .. method .. #rbody .. "\t" .. url .. headerstr .. body, res_ok)
@@ -195,6 +202,32 @@ function _M.check_url_parse(url, header, method, body, verify_ssl, sbuff)
     return sbuff
 end
 
+---check_class
+---@param class_text string @ like `lualib.klib.dump`
+---@param is_dump_class boolean @ true to dump all class content into string, false to run test/main/test_* methods
+---@param force_reload boolean
+function _M.check_class(class_text, is_dump_class, force_reload)
+    local sb = sbuffer.new()
+    if class_text and type(class_text) == 'string' then
+        local list = nsplit(class_text, ',+', 'jo')
+        for i = 1, #list do
+            if force_reload then
+                package.loaded[list[i]] = nil -- hot reload lua class
+            end
+            local ok, klass = pcall(require, list[i])
+            if ok then
+                if is_dump_class then
+                    sb(dump_lua(klass))
+                else
+                    sb(_M.check(klass))
+                end
+            end
+        end
+    end
+    return sb:tos()
+end
+
+---check lua-object, urls-text are acceptable
 function _M.check(...)
     local sb = sbuffer()
     local len = select("#", ...)
@@ -204,9 +237,10 @@ function _M.check(...)
         local tp = type(val)
         if tp == "table" then
             for key, obj in pairs(val) do
-                if key == "test" or key == "main" or key == "sanity" or key == "test_sanity" then
+                if key == "test" or key == "main" or key == "sanity" or find(key, "test_", 1, true) == 1 then
                     if type(obj) == "function" then
                         _M.check_fun(obj, val, sb)
+                        --dump('-------------------',sb:tos())
                     end
                 end
             end
@@ -217,26 +251,33 @@ function _M.check(...)
     return sb:tos()
 end
 
-function _M:dump()
-    local ok, res =
-        xpcall(
-        function()
-            ngx.header["content-type"] = "text/plain"
-        end,
-        debug.traceback
-    )
-    if not ok then
-        dump(res)
+function _M.dump(...)
+    ngx.header["content-type"] = "text/plain"
+    dump(...)
+end
+
+---info get nginx environment info
+---@param no_flush boolean is directly flush to nginx response
+function _M.info(no_flush)
+    local obj = {
+        ["ngx.config.subsystem"] = ngx.config.subsystem,
+        ["ngx.config.debug"] = ngx.config.debug,
+        ["ngx.config.nginx_configure"] = ngx.config.nginx_configure(),
+        ["ngx.config.prefix"] = ngx.config.prefix(),
+        ["ngx.config.ngx_lua_version"] = ngx.config.ngx_lua_version,
+        ["ngx.config.nginx_version"] = ngx.config.nginx_version,
+        ["ngx.worker.pid"] = ngx.worker.pid(),
+        ["ngx.worker.count"] = ngx.worker.count(),
+        ["ngx.timer.running_count"] = ngx.timer.running_count(),
+        ["ngx.timer.pending_count"] = ngx.timer.pending_count()
+    }
+    if not no_flush then
+        dump(obj)
     end
+    return obj
 end
 
 function _M.main()
-    local sb = sbuffer.new()
-	say(_M.check(sbuffer, dump, klass,
-[[
-http://127.0.0.1/
-http://127.0.0.1:10003/?status=500
-]]))
 end
 
 return _M
