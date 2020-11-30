@@ -408,32 +408,48 @@ function _M.dump_wrap_of(class_obj, class_name)
 	return sb:tos()
 end
 
+
+---dump_yaml
+---@param table
+function _M.dump_yaml(obj)
+	local str = _M.dump_lua(obj)
+	str = ssub(str, 2, -2)
+	--str = nsub(str, [[\["?([^\]"]+)"?\] =]], '$1:', 'jo')
+	str = nsub(str, [[\["?([^\]"]+)"?\] = "?([^\n]+)"?\n]], '$1: $2\n', 'jo')
+	str = nsub(str, [[ = "?([^\n]+)"?\n]], ': $1\n', 'jo')
+	--str = nsub(str, [["? = "?]], ': ', 'jo')
+	str = nsub(str, [[\t+\{ *\},|\[ *\],]], '~', 'jo')
+	str = nsub(str, [[\t+[\]\}],?\n]], '', 'jo')
+	str = nsub(str, [[[",\[\{]+\n]], '\n', 'jo')
+	str = nsub(str, [[(\t+)(\w+\n)]], '$1- $2', 'jo')
+	str = nsub(str, [[\n\t(\t*)}?]], '\n$1', 'jo')
+	str = nsub(str, [[\t]], ' ', 'jo')
+	return str
+end
+
 ---global make dump, dump_class, dump_lua, logs, dump_dict global variable
 --- WARNING this method will cause massive warning logs in openresty
 function _M.global()
 	if not _G['dump'] then
 		rawset(_G, 'dump', _M.dump)
-		--_G['dump'] = _M.dump
 	end
 	if not _G['dump_class'] then
 		rawset(_G, 'dump_class', _M.dump_class)
-		--_G['dump_class'] = _M.dump_class
 	end
 	if not _G['logs'] then
 		rawset(_G, 'logs', _M.logs)
-		--_G['logs'] = _M.logs
 	end
 	if not _G['dump_lua'] then
 		rawset(_G, 'dump_lua', _M.dump_lua)
-		--_G['dump_lua'] = _M.dump_lua
 	end
 	if not _G['dump_doc'] then
 		rawset(_G, 'dump_doc', _M.dump_doc)
-		--_G['dump_lua'] = _M.dump_lua
 	end
 	if not _G['dump_dict'] then
 		rawset(_G, 'dump_dict', _M.dump_dict)
-		--_G['dump_dict'] = _M.dump_dict
+	end
+	if not _G['dump_yaml'] then
+		rawset(_G, 'dump_yaml', _M.dump_yaml)
 	end
 	return _M, _M.logs, _M.dump_class, _M.dump_lua, _M.dump_doc, _M.dump_dict
 end
@@ -441,7 +457,7 @@ end
 ---locally `local dump, logs, dump_class,dump_lua, dump_doc, dump_dict = require('klib.dump').locally()`
 ---@return klib.dump,fun,fun,fun,fun,fun @ `local dump, logs, dump_class,dump_lua,dump_dict = require('klib.dump').locally()`
 function _M.locally()
-	return _M, _M.logs, _M.dump_class, _M.dump_lua, _M.dump_doc, _M.dump_dict
+	return _M, _M.logs, _M.dump_class, _M.dump_lua, _M.dump_doc, _M.dump_dict, _M.dump_yaml
 end
 
 setmetatable(_M, {
