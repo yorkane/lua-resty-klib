@@ -65,7 +65,7 @@ function _M.check_url(text, options, sb)
     local list = nsplit(text, [[[\r\n]+]], "jio")
     local prefix, default_prefix = options.prefix
     local host = options.host
-    local ip = options.ip
+    local ip = options.ip or '127.0.0.1'
     local schema = options.schema or "http"
     local port = options.port or ""
     local ua = options.ua
