@@ -17,8 +17,8 @@ test:
 ### install:      Install the library to runtime
 .PHONY: install
 install:
-	mkdir -p $(INST_LUADIR)/resty/klib/
-	cp -f lib/klib/*.lua $(INST_LUADIR)/resty/klib/
+	mkdir -p $(INST_LUADIR)/klib/
+	cp -f lib/klib/*.lua $(INST_LUADIR)/klib/
 
 ### lint:         Lint Lua source code
 .PHONY: lint
