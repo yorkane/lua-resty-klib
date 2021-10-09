@@ -2,7 +2,7 @@ local aes = require "resty.aes"
 local dump = require('klib.dump')
 local re_split = require "ngx.re".split
 local ins, tonumber, fmod, tostring = table.insert, tonumber, math.fmod, tostring
-local nvar, concat, array, nctx, nreq, nphase, hash = ngx.var, table.concat, table.array, ngx.ctx, ngx.req, ngx.get_phase, table.hash
+local nvar, concat, nctx, nreq, nphase, hash = ngx.var, table.concat, ngx.ctx, ngx.req, ngx.get_phase, table.hash
 local now, update_time, time = ngx.now, ngx.update_time, ngx.time
 local nfind, nsub = ngx.re.find, ngx.re.gsub
 local nmatch, gmatch, byte, char = ngx.re.match, ngx.re.gmatch, string.byte, string.char
@@ -13,6 +13,9 @@ local wid = ngx.worker.id() or 0
 local _M = {
 }
 
+local function array(count)
+	return table.new(0, count)
+end
 local _random_seed_nc = 1
 function _M.random(startInt, endInt)
 	local seed = floor((time() - ngx.req.start_time() + _random_seed_nc) * 10000) + wid
@@ -153,7 +156,7 @@ end
 ---@param random_text_length number @the length of random_text
 ---@param is_pure_word boolean @ the random_text only composed by alphabets
 function _M.benchmark_text(func, total_run_counts, random_text_length, is_pure_word)
-	local arr, res = table.array(total_run_counts)
+	local arr, res = array(total_run_counts)
 	random_text_length = random_text_length or 30
 	update_time()
 	local t1, t2 = now()
