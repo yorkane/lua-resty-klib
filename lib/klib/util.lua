@@ -9,6 +9,9 @@ local nmatch, gmatch, byte, char = ngx.re.match, ngx.re.gmatch, string.byte, str
 local find, sub, lower, rep = string.find, string.sub, string.lower, string.rep
 local random, randomseed, floor = math.random, math.randomseed, math.floor
 local wid = ngx.worker.id() or 0
+local bit = require('bit')
+local band, bor, bxor, lshift, rshift, rolm, bnot = bit.band, bit.bor, bit.bxor, bit.lshift, bit.rshift, bit.rol, bit.bnot
+
 
 local _M = {
 }
@@ -132,7 +135,7 @@ function _M.benchmark(func, count, duration, no_dump)
 	end
 	defined = defined or ''
 	defined = defined .. string.dump(func, true)
-	
+
 	---@class benchmark_result
 	local res = {
 		first_run_mark = first_run_mark,
@@ -434,8 +437,72 @@ function _M.write_file(filename, str, is_overwrite, is_hashed, is_binary)
 end
 
 
+---int_byte convert unsigned int into `4 bytes` with high performance
+---@param uint32_num number @ max number: 21474836479 as `255,255,255,255`
+---@param length number @ the char byte length. small number will padding with char(0)
+---@return string @ chars based byte, could process by ngx.encode_base64
+function _M.uint_byte(uint32_num, length)
+	length = length or 4
+    if length == 4 then
+        if uint32_num > _M.max_int then
+            return nil, 'exceed' .. _M.max_int
+        end
+        return char(band(rshift(uint32_num, 24), 0xFF), band(rshift(uint32_num, 16), 0xFF), band(rshift(uint32_num, 8), 0xFF), band(uint32_num, 0xFF))
+    end
+    if length == 3 then
+        if uint32_num > 16777215 then
+            return nil, 'exceed 16777215'
+        end
+        return char(band(rshift(uint32_num, 16), 0xFF), band(rshift(uint32_num, 8), 0xFF), band(uint32_num, 0xFF))
+    end
+    if length == 2 then
+        if uint32_num > 65535 then
+            return nil, 'exceed 65535'
+        end
+        return char(band(rshift(uint32_num, 8), 0xFF), band(uint32_num, 0xFF))
+    end
+    if uint32_num > 255 then
+        return nil, 'exceed 255'
+    end
+    return char(uint32_num)
+end
+
+---byte_uint
+---@param byte_str string
+---@param start_index number @ Index of the bytes to convert
+---@param length number @ bytes length must less than 4
+---@return number, string @ unsigned int32, error message
+function _M.byte_uint(byte_str, start_index, length)
+	if not byte_str then
+		return 0
+	end
+    length = length or 4
+    if length > 4 then
+        return nil, 'length must less than 4'
+    end
+	local n1, n2, n3, n4 = 0,0,0,0
+	start_index = start_index or 1
+    if length == 4 then
+        n1 = lshift(byte(byte_str, start_index), 24)
+        n2 = lshift(byte(byte_str, start_index + 1), 16)
+        n3 = lshift(byte(byte_str, start_index + 2), 8)
+        n4 = byte(byte_str, start_index + 3) or 0
+    elseif length == 3 then
+        n2 = lshift(byte(byte_str, start_index), 16)
+        n3 = lshift(byte(byte_str, start_index + 1), 8)
+        n4 = byte(byte_str, start_index + 2) or 0
+    elseif length == 2 then
+        n3 = lshift(byte(byte_str, start_index), 8)
+        n4 = byte(byte_str, start_index + 1) or 0
+    else
+        n4 = byte(byte_str, start_index) or 0
+    end
+	return n1 + n2 + n3 + n4
+end
+
+
 function _M.main()
-	_M.benchmark(function(inx) 
+	_M.benchmark(function(inx)
 		return ngx.crc32_long('sssss')
 	end)
 end
