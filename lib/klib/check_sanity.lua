@@ -114,9 +114,9 @@ function _M.check_url(text, options, sb)
             if char == 47 then
                 -- start with path /xxx?xxx=xxx
                 if prefix then
-                    url = prefix .. mc[2]
+                    url = prefix .. arr[1]
                 else
-                    url = default_prefix .. mc[2]
+                    url = default_prefix .. arr[1]
                 end
                 local ok, msg = _M.check_url_parse(url, options, method, body or req_body, verify, sb)
                 if ok then
