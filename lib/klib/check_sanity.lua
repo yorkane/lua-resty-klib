@@ -187,12 +187,12 @@ function _M.check_url_parse(url, header, method, body, verify_ssl, sbuff)
         return sbuff(status .. method .. " 0\t" .. url .. headerstr .. body, res_fail)
     end
     if status > 205 then
-        dump(url, rbody, resp.headers)
+        dump('Status: ' .. status .. ' @ ' .. url, rbody, resp.headers)
         return sbuff(status .. method .. " " .. #rbody .. "\t" .. url .. headerstr .. rbody, res_fail)
     end
     if status == 200 then
         if #rbody == 0 then
-            dump(url, header, rbody, resp.headers)
+            dump("Empty body:" .. url, header, rbody, resp.headers)
             return sbuff("200" .. method .. " 0\t" .. url .. headerstr .. body, res_fail)
         else
             return sbuff("200" .. method .. #rbody .. "\t" .. url .. headerstr .. body, res_ok)
