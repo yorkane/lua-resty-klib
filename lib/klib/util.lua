@@ -14,6 +14,8 @@ local band, bor, bxor, lshift, rshift, rolm, bnot = bit.band, bit.bor, bit.bxor,
 
 
 local _M = {
+	max_int = 4294967295,
+	max_long = 9199999999999999999
 }
 
 local function array(count)
