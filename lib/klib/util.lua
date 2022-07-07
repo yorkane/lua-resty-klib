@@ -17,9 +17,8 @@ local _M = {
 	max_int = 4294967295,
 	max_long = 9199999999999999999
 }
-
 local function array(count)
-	return table.new(0, count)
+	return table.new(count, 0)
 end
 local _random_seed_nc = 1
 function _M.random(startInt, endInt)
@@ -438,35 +437,35 @@ function _M.write_file(filename, str, is_overwrite, is_hashed, is_binary)
 	return err
 end
 
-
+local max_int = 4294967295
 ---int_byte convert unsigned int into `4 bytes` with high performance
 ---@param uint32_num number @ max number: 21474836479 as `255,255,255,255`
 ---@param length number @ the char byte length. small number will padding with char(0)
 ---@return string @ chars based byte, could process by ngx.encode_base64
 function _M.uint_byte(uint32_num, length)
 	length = length or 4
-    if length == 4 then
-        if uint32_num > _M.max_int then
-            return nil, 'exceed' .. _M.max_int
-        end
-        return char(band(rshift(uint32_num, 24), 0xFF), band(rshift(uint32_num, 16), 0xFF), band(rshift(uint32_num, 8), 0xFF), band(uint32_num, 0xFF))
-    end
-    if length == 3 then
-        if uint32_num > 16777215 then
-            return nil, 'exceed 16777215'
-        end
-        return char(band(rshift(uint32_num, 16), 0xFF), band(rshift(uint32_num, 8), 0xFF), band(uint32_num, 0xFF))
-    end
-    if length == 2 then
-        if uint32_num > 65535 then
-            return nil, 'exceed 65535'
-        end
-        return char(band(rshift(uint32_num, 8), 0xFF), band(uint32_num, 0xFF))
-    end
-    if uint32_num > 255 then
-        return nil, 'exceed 255'
-    end
-    return char(uint32_num)
+	if length == 4 then
+		if uint32_num > max_int then
+			return nil, 'exceed' .. max_int
+		end
+		return char(band(rshift(uint32_num, 24), 0xFF), band(rshift(uint32_num, 16), 0xFF), band(rshift(uint32_num, 8), 0xFF), band(uint32_num, 0xFF))
+	end
+	if length == 3 then
+		if uint32_num > 16777215 then
+			return nil, 'exceed 16777215'
+		end
+		return char(band(rshift(uint32_num, 16), 0xFF), band(rshift(uint32_num, 8), 0xFF), band(uint32_num, 0xFF))
+	end
+	if length == 2 then
+		if uint32_num > 65535 then
+			return nil, 'exceed 65535'
+		end
+		return char(band(rshift(uint32_num, 8), 0xFF), band(uint32_num, 0xFF))
+	end
+	if uint32_num > 255 then
+		return nil, 'exceed 255'
+	end
+	return char(uint32_num)
 end
 
 ---byte_uint
@@ -478,28 +477,101 @@ function _M.byte_uint(byte_str, start_index, length)
 	if not byte_str then
 		return 0
 	end
-    length = length or 4
-    if length > 4 then
-        return nil, 'length must less than 4'
-    end
+	length = length or 4
+	if length > 4 then
+		return nil, 'length must less than 4'
+	end
 	local n1, n2, n3, n4 = 0,0,0,0
 	start_index = start_index or 1
-    if length == 4 then
-        n1 = lshift(byte(byte_str, start_index), 24)
-        n2 = lshift(byte(byte_str, start_index + 1), 16)
-        n3 = lshift(byte(byte_str, start_index + 2), 8)
-        n4 = byte(byte_str, start_index + 3) or 0
-    elseif length == 3 then
-        n2 = lshift(byte(byte_str, start_index), 16)
-        n3 = lshift(byte(byte_str, start_index + 1), 8)
-        n4 = byte(byte_str, start_index + 2) or 0
-    elseif length == 2 then
-        n3 = lshift(byte(byte_str, start_index), 8)
-        n4 = byte(byte_str, start_index + 1) or 0
-    else
-        n4 = byte(byte_str, start_index) or 0
-    end
+	if length == 4 then
+		n1 = lshift(byte(byte_str, start_index), 24)
+		n2 = lshift(byte(byte_str, start_index + 1), 16)
+		n3 = lshift(byte(byte_str, start_index + 2), 8)
+		n4 = byte(byte_str, start_index + 3) or 0
+	elseif length == 3 then
+		n2 = lshift(byte(byte_str, start_index), 16)
+		n3 = lshift(byte(byte_str, start_index + 1), 8)
+		n4 = byte(byte_str, start_index + 2) or 0
+	elseif length == 2 then
+		n3 = lshift(byte(byte_str, start_index), 8)
+		n4 = byte(byte_str, start_index + 1) or 0
+	else
+		n4 = byte(byte_str, start_index) or 0
+	end
 	return n1 + n2 + n3 + n4
+end
+
+
+function _M.is_letter(num)
+	if type(num) == 'string' then
+		num = byte(num, 1, 1)
+	end
+	if num < 91 and num > 64 then
+		return true, true -- upper case letter
+	end
+	if num < 123 and num > 96 then
+		return true, false -- lower case letter
+	end
+	return false
+end
+
+---capitalize first letter
+---@param str string
+function _M.capitalize(str)
+	local is_letter, upper_case = _M.is_letter(str)
+	if is_letter and not upper_case then
+		return sub(str, 1, 1):upper() .. sub(str, 2, -1)
+	end
+end
+
+---camelize Returns the camelCase form of a string keeping the 1st word unchanged, ignore any `none-letter`
+---@param str string
+---@return string
+function _M.camelize(str)
+	local res, need_up = sub(str, 1, 1)
+	local len = #str
+	for i = 2, len do
+		local num = byte(str, i)
+		local is_letter, upper_case = _M.is_letter(num)
+		if not is_letter then
+			need_up = true
+		else
+			if need_up and not upper_case then
+				res = res .. char(num):upper()
+				need_up = false
+			else
+				res = res .. char(num)
+				need_up = false
+			end
+		end
+	end
+	return res
+end
+
+---decamelize string from camelized
+---@param str string
+---@param separator string @ default with `_`
+function _M.decamelize(str, separator)
+	local res, need_sep = sub(str, 1, 1)
+	local len = #str
+	separator = separator or '_'
+	for i = 2, len do
+		local num = byte(str, i)
+		local is_letter, upper_case = _M.is_letter(num)
+		if is_letter then
+			if upper_case then
+				local cr = char(num):lower()
+				res = res .. separator .. cr
+				need_sep = false
+			else
+				res = res .. char(num)
+				need_sep = false
+			end
+		else
+			res = res .. separator
+		end
+	end
+	return res
 end
 
 
