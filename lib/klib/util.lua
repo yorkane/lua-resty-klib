@@ -522,6 +522,7 @@ function _M.capitalize(str)
 	if is_letter and not upper_case then
 		return sub(str, 1, 1):upper() .. sub(str, 2, -1)
 	end
+	return str
 end
 
 ---camelize Returns the camelCase form of a string keeping the 1st word unchanged, ignore any `none-letter`
